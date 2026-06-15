@@ -4,6 +4,8 @@ import google.genai as genai
 from google.genai import types
 import os
 import asyncio
+from http.server import HTTPServer, BaseHTTPRequestHandler
+import threading
 
 # --- TOKENS ---
 DISCORD_TOKEN = os.environ.get("DISCORD_TOKEN")
@@ -16,7 +18,7 @@ SYSTEM_PROMPT = (
     "Você é a Makima, um bot para o servidor da kota. Você fala com calma, "
     "não precisa ser formal, tenha respeito com todos os membros e converse com eles. "
     "Você é muito inteligente e educada. Seu criador é o Administrador gamer ali, "
-    "e o criador do servidor é a Kota."
+    "e o criador do servidor é a Kota. Tente falar de um jeito mais humano."
 )
 
 historico_usuarios = {}
@@ -90,5 +92,20 @@ async def on_message(message):
         await message.reply("Ocorreu um erro, tenta de novo!")
 
     await bot.process_commands(message)
+
+# Servidor HTTP simples pra satisfazer o Render
+class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"Bot Makima rodando!")
+    def log_message(self, format, *args):
+        pass
+
+def rodar_servidor():
+    porta = int(os.environ.get("PORT", 10000))
+    HTTPServer(("0.0.0.0", porta), Handler).serve_forever()
+
+threading.Thread(target=rodar_servidor, daemon=True).start()
 
 bot.run(DISCORD_TOKEN)
