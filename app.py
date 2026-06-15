@@ -1,15 +1,53 @@
 import discord
 from discord.ext import commands
-from google import genai
+import google.genai as genai
+from google.genai import types
 import os
 import asyncio
 
-# Puxando os tokens de forma segura direto do arquivo .env da Glitch
+# --- TOKENS ---
 DISCORD_TOKEN = os.environ.get("DISCORD_TOKEN")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
-# Inicializa o cliente moderno do Gemini
-client = genai.Client(api_key=GEMINI_API_KEY)
+# Configura o Gemini
+client_ai = genai.Client(api_key=GEMINI_API_KEY)
+
+SYSTEM_PROMPT = (
+    "Você é a Makima, um bot para o servidor da kota. Você fala com calma, "
+    "não precisa ser formal, tenha respeito com todos os membros e converse com eles. "
+    "Você é muito inteligente e educada. Seu criador é o Administrador gamer ali, "
+    "e o criador do servidor é a Kota."
+)
+
+historico_usuarios = {}
+
+def perguntar_gemini(usuario_id, prompt):
+    if usuario_id not in historico_usuarios:
+        historico_usuarios[usuario_id] = []
+
+    historico_usuarios[usuario_id].append({
+        "role": "user",
+        "parts": [{"text": prompt}]
+    })
+
+    response = client_ai.models.generate_content(
+        model="gemini-3.1-flash-lite-preview",
+        contents=historico_usuarios[usuario_id],
+        config=types.GenerateContentConfig(
+            system_instruction=SYSTEM_PROMPT,
+            temperature=1,
+            max_output_tokens=2048,
+        )
+    )
+
+    resposta_texto = response.text
+
+    historico_usuarios[usuario_id].append({
+        "role": "model",
+        "parts": [{"text": resposta_texto}]
+    })
+
+    return resposta_texto
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -24,44 +62,33 @@ async def on_message(message):
     if message.author == bot.user:
         return
 
-    # Responde quando for mencionado
-    if bot.user.mentioned_in(message):
-        try:
-            # Limpa as menções do texto
-            prompt = message.content
-            for mention in message.mentions:
-                prompt = prompt.replace(mention.mention, "")
-            prompt = prompt.strip()
-            
-            if not prompt:
-                prompt = "Olá!"
+    mencionou = bot.user.mentioned_in(message)
+    respondeu_ao_bot = (
+        message.reference is not None
+        and message.reference.resolved is not None
+        and message.reference.resolved.author == bot.user
+    )
 
-            # Chamada moderna usando o modelo Flash Lite super rápido
-            response = client.models.generate_content(
-                model='gemini-2.5-flash-lite',
-                contents=prompt,
-                config=genai.types.GenerateContentConfig(
-                    system_instruction=(
-                        "Você é a Makima, um bot para o servidor da kota. Você fala com calma, "
-                        "não precisa ser formal, tenha respeito com todos os membros e converse com eles. "
-                        "Você é muito inteligente e educada. Seu criador é o Administrador gamer ali, "
-                        "e o criador do servidor é a Kota. Tente falar de um jeito mais normal."
-                    ),
-                    temperature=1.0,
-                    max_output_tokens=2048
-                )
-            )
-            
-            await message.reply(response.text)
-            
-        except Exception as e:
-            print(f"❌ Erro ao gerar resposta no Gemini: {e}")
+    if not (mencionou or respondeu_ao_bot):
+        return
 
-async def main():
+    prompt = message.content
+    for mention in message.mentions:
+        prompt = prompt.replace(mention.mention, "").strip()
+
+    if not prompt:
+        prompt = "Olá!"
+
     try:
-        await bot.start(DISCORD_TOKEN)
+        async with message.channel.typing():
+            resposta = await asyncio.to_thread(
+                perguntar_gemini, message.author.id, prompt
+            )
+        await message.reply(resposta)
     except Exception as e:
-        print(f"❌ Erro crítico no bot do Discord: {e}")
+        print(f"❌ Erro: {e}")
+        await message.reply("Ocorreu um erro, tenta de novo!")
 
-if __name__ == "__main__":
-    asyncio.run(main())
+    await bot.process_commands(message)
+
+bot.run(DISCORD_TOKEN)
