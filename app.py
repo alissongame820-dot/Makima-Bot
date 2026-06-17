@@ -71,7 +71,7 @@ async def on_ready():
 async def on_member_join(member):
     canal = bot.get_channel(CANAL_BOAS_VINDAS)
     if canal:
-        await canal.send(f"Olá {member.mention}! Bem vindo ao servidor, espero que goste do servidor! :D")
+        await canal.send(f"Olá {member.mention} Bem vindo(a) espero que goste do servidor :D")
 
 @bot.event
 async def on_message(message):
