@@ -95,15 +95,21 @@ async def on_message(message):
 
     prompt = message.content
     for mention in message.mentions:
-        prompt = prompt.replace(mention.mention, "").strip()
+        if mention != bot.user:
+            prompt = prompt.replace(mention.mention, f"@{mention.display_name}")
+    prompt = prompt.replace(bot.user.mention, "").strip()
 
     if not prompt:
         prompt = "Olá!"
 
+    # Passa o nome de quem tá falando pro Gemini
+    nome_autor = message.author.display_name
+    prompt_com_contexto = f"[Quem está falando comigo agora: {nome_autor}]\n{prompt}"
+
     try:
         async with message.channel.typing():
             resposta = await asyncio.to_thread(
-                perguntar_gemini, message.author.id, prompt
+                perguntar_gemini, message.author.id, prompt_com_contexto
             )
         await message.reply(resposta)
     except Exception as e:
