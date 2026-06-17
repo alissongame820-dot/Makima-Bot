@@ -63,7 +63,9 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 @bot.event
 async def on_ready():
     print(f"✅ Bot Makima online como {bot.user}!")
-
+    await bot.change_presence(
+        activity=discord.CustomActivity(name="Não sou grossa. So não me usem como parceira para crimes :(")
+    )
 @bot.event
 async def on_member_join(member):
     canal = bot.get_channel(CANAL_BOAS_VINDAS)
