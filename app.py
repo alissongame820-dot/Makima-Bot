@@ -87,7 +87,7 @@ async def on_message(message):
 
     # Responde quando o cargo Ping Reviver Chat for mencionado
     if cargo_mencionado and not mencionou:
-        await message.channel.send(f"Ping Reviver Chat 👋")
+        await message.channel.send(f"Eai. Ativou o chat eu apareci!")
         return
 
     if not (mencionou or respondeu_ao_bot):
