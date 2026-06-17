@@ -21,6 +21,10 @@ SYSTEM_PROMPT = (
     "e o criador do servidor é a Kota. Tente falar de um jeito mais direto e respostas medias ou curtas, sem ser grandes"
 )
 
+# IDs
+CANAL_BOAS_VINDAS = 1476447063154757732
+CARGO_REVIVER = 1429476218771869786
+
 historico_usuarios = {}
 
 def perguntar_gemini(usuario_id, prompt):
@@ -53,11 +57,20 @@ def perguntar_gemini(usuario_id, prompt):
 
 intents = discord.Intents.default()
 intents.message_content = True
+intents.members = True  # Necessário para boas vindas
+intents.voice_states = True  # Necessário para canal de voz
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 @bot.event
 async def on_ready():
     print(f"✅ Bot Makima online como {bot.user}!")
+
+# Boas vindas quando alguém entra no servidor
+@bot.event
+async def on_member_join(member):
+    canal = bot.get_channel(CANAL_BOAS_VINDAS)
+    if canal:
+        await canal.send(f"Olá {member.mention}! Bem vindo ao servidor, espero que goste do servidor! :D")
 
 @bot.event
 async def on_message(message):
@@ -70,8 +83,40 @@ async def on_message(message):
         and message.reference.resolved is not None
         and message.reference.resolved.author == bot.user
     )
+    cargo_mencionado = any(role.id == CARGO_REVIVER for role in message.role_mentions)
+
+    # Responde quando o cargo Ping Reviver Chat for mencionado
+    if cargo_mencionado and not mencionou:
+        await message.channel.send(f"Ping Reviver Chat 👋")
+        return
 
     if not (mencionou or respondeu_ao_bot):
+        return
+
+    # Verifica se é pedido pra entrar em canal de voz
+    texto_lower = message.content.lower()
+    if any(p in texto_lower for p in ["entra na call", "vem call", "entra call", "Bora call"]):
+        if message.author.voice and message.author.voice.channel:
+            canal_voz = message.author.voice.channel
+            try:
+                await canal_voz.connect()
+                await message.reply(f"Entrei no canal **{canal_voz.name}**! 🎙️")
+            except discord.ClientException:
+                await message.reply("Já estou em um canal de voz!")
+            except Exception as e:
+                await message.reply("Não consegui entrar no canal.")
+                print(f"Erro voz: {e}")
+        else:
+            await message.reply("Você precisa estar em um canal de voz primeiro!")
+        return
+
+    # Verifica se é pedido pra sair do canal de voz
+    if any(p in texto_lower for p in ["sai do canal", "sair do canal", "desconecta", "sai do voice"]):
+        if message.guild.voice_client:
+            await message.guild.voice_client.disconnect()
+            await message.reply("Saí do canal de voz! 👋")
+        else:
+            await message.reply("Não estou em nenhum canal de voz.")
         return
 
     prompt = message.content
