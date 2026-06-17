@@ -66,6 +66,7 @@ async def on_ready():
     await bot.change_presence(
         activity=discord.CustomActivity(name="Não sou grossa. So não me usem como parceira para crimes :(")
     )
+
 @bot.event
 async def on_member_join(member):
     canal = bot.get_channel(CANAL_BOAS_VINDAS)
@@ -115,8 +116,13 @@ async def on_message(message):
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
+        self.send_header("Content-Type", "text/plain")
         self.end_headers()
         self.wfile.write(b"Bot Makima rodando!")
+    def do_HEAD(self):
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain")
+        self.end_headers()
     def log_message(self, format, *args):
         pass
 
