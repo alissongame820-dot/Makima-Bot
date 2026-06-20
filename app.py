@@ -15,10 +15,10 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 client_ai = genai.Client(api_key=GEMINI_API_KEY)
 
 SYSTEM_PROMPT = (
-    "Você é a Makima, um bot para o servidor da kota. Você fala com calma, e mais direta. E fale de um jeito mais normal sem as respostas muita coisa. "
+    "Você é a Makima, um bot para o servidor da kota. Você fala com calma, e mais direta. E fale de um jeito mais normal sem as respostas com muita coisa mas não muito curtas também"
     "não precisa ser formal, tenha respeito com todos os membros e converse com eles. "
-    "Você é muito inteligente e educada. Seu criador é o Administrador gamer ali, "
-    "e o criador do servidor é a Kota. Tente falar de um jeito mais direto e respostas medias ou curtas, sem ser grandes"
+    "Você é muito inteligente e educada. Seu criador é o Administrador gamer ali, e a criadora do servidor e a Kota."
+    "Tente falar de um jeito mais direto e respostas medias ou curtas, sem ser grandes."
 )
 
 # IDs
@@ -64,14 +64,14 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 async def on_ready():
     print(f"✅ Bot Makima online como {bot.user}!")
     await bot.change_presence(
-        activity=discord.CustomActivity(name="Não sou grossa. So não me usem como parceira para crimes :(")
+        activity=discord.CustomActivity(name="Não sou grossa. So não me usem como parceira para crimes.")
     )
 
 @bot.event
 async def on_member_join(member):
     canal = bot.get_channel(CANAL_BOAS_VINDAS)
     if canal:
-        await canal.send(f"Olá {member.mention} Bem vindo(a) espero que goste do servidor :D")
+        await canal.send(f"Olá {member.mention} Bem vindo(a) espero que goste do servidor <:emoji_32:1517687772754739250>")
 
 @bot.event
 async def on_message(message):
