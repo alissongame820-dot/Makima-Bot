@@ -80,11 +80,19 @@ async def on_message(message):
         return
 
     mencionou = bot.user.mentioned_in(message)
-    respondeu_ao_bot = (
-        message.reference is not None
-        and message.reference.resolved is not None
-        and message.reference.resolved.author == bot.user
-    )
+
+    # Corrigido: busca a mensagem referenciada se não tiver carregada
+    respondeu_ao_bot = False
+    if message.reference is not None:
+        try:
+            ref = message.reference.resolved
+            if ref is None:
+                ref = await message.channel.fetch_message(message.reference.message_id)
+            if ref is not None and ref.author == bot.user:
+                respondeu_ao_bot = True
+        except:
+            pass
+
     cargo_mencionado = any(role.id == CARGO_REVIVER for role in message.role_mentions)
 
     if cargo_mencionado and not mencionou:
@@ -106,19 +114,23 @@ async def on_message(message):
     prompt_lower = prompt.lower()
 
     # --- Lógica de entrar na call ---
-    palavras_entrar = ["entra na call", "Entra na call", "Vamo call", "vamo call", "Entrar call", "entra call", "vem call"]
-    palavras_sair = ["sai da call", "Sai da call", "Pode sair", "Pode sair da call", "Sai"]
+    palavras_entrar = ["entra na call", "entre na call", "Entre na call", "Vem call", "vem call", "entra call", "Entra call"]
+    palavras_sair = ["sai da call", "Sai da call", "Pode sair", "pode sair", "sai"]
 
     if any(p in prompt_lower for p in palavras_entrar):
         canal_voz = message.author.voice.channel if message.author.voice else None
         if canal_voz is None:
             await message.reply("Você precisa entrar em um canal de voz primeiro para eu poder ir.")
         else:
-            if message.guild.voice_client is not None:
-                await message.guild.voice_client.move_to(canal_voz)
-            else:
-                await canal_voz.connect()
-            await message.reply(f"Entrei no **{canal_voz.name}**.")
+            try:
+                if message.guild.voice_client is not None:
+                    await message.guild.voice_client.move_to(canal_voz)
+                else:
+                    await canal_voz.connect(self_deaf=True)
+                await message.reply(f"Entrei no **{canal_voz.name}**.")
+            except Exception as e:
+                print(f"Erro ao entrar na call: {e}")
+                await message.reply("Não consegui entrar na call, tenta de novo.")
         return
 
     # --- Lógica de sair da call ---
