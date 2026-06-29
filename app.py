@@ -58,6 +58,7 @@ def perguntar_gemini(usuario_id, prompt):
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
+intents.voice_states = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 @bot.event
@@ -101,6 +102,33 @@ async def on_message(message):
 
     if not prompt:
         prompt = "Olá!"
+
+    prompt_lower = prompt.lower()
+
+    # --- Lógica de entrar na call ---
+    palavras_entrar = ["entra na call", "Entra na call", "Vamo call", "vamo call", "Entrar call", "entra call", "vem call"]
+    palavras_sair = ["sai da call", "Sai da call", "Pode sair", "Pode sair da call", "Sai"]
+
+    if any(p in prompt_lower for p in palavras_entrar):
+        canal_voz = message.author.voice.channel if message.author.voice else None
+        if canal_voz is None:
+            await message.reply("Você precisa entrar em um canal de voz primeiro para eu poder ir.")
+        else:
+            if message.guild.voice_client is not None:
+                await message.guild.voice_client.move_to(canal_voz)
+            else:
+                await canal_voz.connect()
+            await message.reply(f"Entrei no **{canal_voz.name}**.")
+        return
+
+    # --- Lógica de sair da call ---
+    if any(p in prompt_lower for p in palavras_sair):
+        if message.guild.voice_client is not None:
+            await message.guild.voice_client.disconnect()
+            await message.reply("Saí da call.")
+        else:
+            await message.reply("Não estou em nenhum canal de voz.")
+        return
 
     # Passa o nome de quem tá falando pro Gemini
     nome_autor = message.author.display_name
