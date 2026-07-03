@@ -4,8 +4,10 @@ import google.genai as genai
 from google.genai import types
 import os
 import asyncio
+import aiohttp
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import threading
+from datetime import datetime
 
 # --- TOKENS ---
 DISCORD_TOKEN = os.environ.get("DISCORD_TOKEN")
@@ -24,6 +26,7 @@ SYSTEM_PROMPT = (
 # IDs
 CANAL_BOAS_VINDAS = 1476447063154757732
 CARGO_REVIVER = 1429476218771869786
+WEBHOOK_SAIDA = "https://discord.com/api/webhooks/1522392947071651943/jpS662kBWCjuUNAu81Aj8Z_ymsgvk7DTR5PkMB7my3fabJ065gGYWbLKBujh_0TWBco3"
 
 historico_usuarios = {}
 
@@ -75,6 +78,12 @@ async def on_member_join(member):
         await canal.send(f"Olá {member.mention} Bem vindo(a) espero que goste do servidor se precisar de alguma coisa, estarei a disposição! <:emoji_32:1517687772754739250>")
 
 @bot.event
+async def on_member_remove(member):
+    async with aiohttp.ClientSession() as session:
+        webhook = discord.Webhook.from_url(WEBHOOK_SAIDA, session=session)
+        await webhook.send(f"**O Usuario {member.mention} saiu do servidor! Data e Hora da saida:** <t:{int(datetime.utcnow().timestamp())}:f>")
+
+@bot.event
 async def on_message(message):
     if message.author == bot.user:
         return
@@ -122,7 +131,6 @@ async def on_message(message):
             await message.reply("Você precisa entrar em um canal de voz primeiro para eu poder ir.")
         else:
             try:
-                # Desconecta qualquer conexão presa antes de entrar
                 if message.guild.voice_client is not None:
                     await message.guild.voice_client.disconnect(force=True)
                     await asyncio.sleep(1)
