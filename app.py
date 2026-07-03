@@ -26,7 +26,7 @@ SYSTEM_PROMPT = (
 # IDs
 CANAL_BOAS_VINDAS = 1476447063154757732
 CARGO_REVIVER = 1429476218771869786
-WEBHOOK_SAIDA = "https://discord.com/api/webhooks/1522392947071651943/jpS662kBWCjuUNAu81Aj8Z_ymsgvk7DTR5PkMB7my3fabJ065gGYWbLKBujh_0TWBco3"
+WEBHOOK_SAIDA = "MEU LINK WEBHOOK"
 
 historico_usuarios = {}
 
@@ -57,21 +57,6 @@ def perguntar_gemini(usuario_id, prompt):
     })
 
     return resposta_texto
-
-def verificar_intencao(texto):
-    try:
-        resposta = client_ai.models.generate_content(
-            model="gemini-3.1-flash-lite-preview",
-            contents=[{"role": "user", "parts": [{"text": texto}]}],
-            config=types.GenerateContentConfig(
-                system_instruction="Você analisa se uma mensagem é um pedido para entrar em canal de voz, sair de canal de voz, ou nenhum dos dois. Responda APENAS com: ENTRAR, SAIR ou NADA.",
-                temperature=0,
-                max_output_tokens=10,
-            )
-        )
-        return resposta.text.strip().upper()
-    except:
-        return "NADA"
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -134,13 +119,13 @@ async def on_message(message):
     if not prompt:
         prompt = "Olá!"
 
-    # --- Gemini interpreta a intenção de call ---
-    try:
-        intencao = await asyncio.to_thread(verificar_intencao, prompt)
-    except:
-        intencao = "NADA"
+    prompt_lower = prompt.lower()
 
-    if intencao == "ENTRAR":
+    # --- Lógica de entrar na call ---
+    palavras_entrar = ["entra na call", "Entra na call", "entra call", "Entra call", "vem call", "Vem call", "entra no canal de voz"]
+    palavras_sair = ["sai da call", "sai da voz", "sai do canal de voz", "pode sair", "sai daí"]
+
+    if any(p in prompt_lower for p in palavras_entrar):
         canal_voz = message.author.voice.channel if message.author.voice else None
         if canal_voz is None:
             await message.reply("Você precisa entrar em um canal de voz primeiro para eu poder ir.")
@@ -156,7 +141,8 @@ async def on_message(message):
                 await message.reply(f"Erro ao entrar na call: {e}")
         return
 
-    if intencao == "SAIR":
+    # --- Lógica de sair da call ---
+    if any(p in prompt_lower for p in palavras_sair):
         if message.guild.voice_client is not None:
             await message.guild.voice_client.disconnect(force=True)
             await message.reply("Saí da call.")
