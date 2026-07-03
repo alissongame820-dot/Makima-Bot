@@ -68,7 +68,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 async def on_ready():
     print(f"✅ Bot Makima online como {bot.user}!")
     await bot.change_presence(
-        activity=discord.CustomActivity(name="Não sou grossa. So não me usem como parceira para crimes.")
+        activity=discord.CustomActivity(name="Estou em manutenção...")
     )
 
 @bot.event
