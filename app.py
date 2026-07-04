@@ -55,6 +55,6 @@ def rodar_servidor():
     porta = int(os.environ.get("PORT", 10000))
     HTTPServer(("0.0.0.0", porta), Handler).serve_forever()
 
-threading.Thread(target=rodar_imperi, daemon=True).start()
+threading.Thread(target=rodar_servidor, daemon=True).start()
 
 bot.run(DISCORD_TOKEN)
