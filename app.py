@@ -47,7 +47,7 @@ def perguntar_gemini(usuario_id, prompt):
     })
 
     response = client_ai.models.generate_content(
-        model="gemini-2.0-flash-lite",
+        model="gemini-3.1-flash-lite-preview",
         contents=historico_usuarios[usuario_id],
         config=types.GenerateContentConfig(
             system_instruction=SYSTEM_PROMPT,
