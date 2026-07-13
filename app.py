@@ -32,8 +32,8 @@ CANAL_LOG = 1427106726284492820
 WEBHOOK_SAIDA = "https://discord.com/api/webhooks/1522392947071651943/jpS662kBWCjuUNAu81Aj8Z_ymsgvk7DTR5PkMB7my3fabJ065gGYWbLKBujh_0TWBco3"
 
 # Controle de spam
-mencoes_usuarios = defaultdict(list)  # {user_id: [timestamps]}
-punidos_usuarios = set()  # usuários que já levaram mute de 1 dia
+mencoes_usuarios = defaultdict(list)
+punidos_usuarios = set()
 
 historico_usuarios = {}
 
@@ -100,20 +100,17 @@ async def on_message(message):
         usuario_id = message.author.id
         agora = datetime.now(timezone.utc)
 
-    print(f"🚨 Spam detectado de {message.author} - total: {len(mencoes_usuarios[message.author.id])+1}")
-
-        # Remove menções antigas (fora da janela de 10 minutos)
         mencoes_usuarios[usuario_id] = [
             t for t in mencoes_usuarios[usuario_id]
             if agora - t < timedelta(minutes=10)
         ]
 
         mencoes_usuarios[usuario_id].append(agora)
+        print(f"🚨 Spam detectado de {message.author} - total: {len(mencoes_usuarios[usuario_id])}")
 
         if len(mencoes_usuarios[usuario_id]) >= 5:
             mencoes_usuarios[usuario_id].clear()
 
-            # Define duração do mute
             if usuario_id in punidos_usuarios:
                 duracao = timedelta(weeks=1)
                 duracao_texto = "1 semana"
@@ -134,9 +131,10 @@ async def on_message(message):
                         f"**Canal:** {message.channel.mention}\n"
                         f"**Data e hora da punição:** <t:{int(datetime.now(timezone.utc).timestamp())}:f>"
                     )
+                print(f"✅ {message.author} mutado por {duracao_texto}")
             except Exception as e:
                 print(f"Erro ao mutar: {e}")
-            return
+        return
 
     mencionou = bot.user.mentioned_in(message)
 
