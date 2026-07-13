@@ -100,6 +100,8 @@ async def on_message(message):
         usuario_id = message.author.id
         agora = datetime.now(timezone.utc)
 
+    print(f"🚨 Spam detectado de {message.author} - total: {len(mencoes_usuarios[message.author.id])+1}")
+
         # Remove menções antigas (fora da janela de 10 minutos)
         mencoes_usuarios[usuario_id] = [
             t for t in mencoes_usuarios[usuario_id]
