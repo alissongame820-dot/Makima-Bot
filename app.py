@@ -32,7 +32,8 @@ CANAL_LOG = 1427106726284492820
 WEBHOOK_SAIDA = "https://discord.com/api/webhooks/1522392947071651943/jpS662kBWCjuUNAu81Aj8Z_ymsgvk7DTR5PkMB7my3fabJ065gGYWbLKBujh_0TWBco3"
 
 # Controle de spam
-mencoes_usuarios = defaultdict(list)
+mencoes_usuarios = defaultdict(list)       # {user_id: [timestamps]}
+mensagens_usuarios = defaultdict(list)     # {user_id: [message objects]}
 punidos_usuarios = set()
 
 historico_usuarios = {}
@@ -100,16 +101,23 @@ async def on_message(message):
         usuario_id = message.author.id
         agora = datetime.now(timezone.utc)
 
-        mencoes_usuarios[usuario_id] = [
-            t for t in mencoes_usuarios[usuario_id]
+        # Remove menções antigas fora da janela de 10 minutos
+        indices_validos = [
+            i for i, t in enumerate(mencoes_usuarios[usuario_id])
             if agora - t < timedelta(minutes=10)
         ]
+        mencoes_usuarios[usuario_id] = [mencoes_usuarios[usuario_id][i] for i in indices_validos]
+        mensagens_usuarios[usuario_id] = [mensagens_usuarios[usuario_id][i] for i in indices_validos]
 
         mencoes_usuarios[usuario_id].append(agora)
+        mensagens_usuarios[usuario_id].append(message)
         print(f"🚨 Spam detectado de {message.author} - total: {len(mencoes_usuarios[usuario_id])}")
 
         if len(mencoes_usuarios[usuario_id]) >= 5:
+            # Guarda as mensagens para deletar
+            msgs_para_deletar = mensagens_usuarios[usuario_id].copy()
             mencoes_usuarios[usuario_id].clear()
+            mensagens_usuarios[usuario_id].clear()
 
             if usuario_id in punidos_usuarios:
                 duracao = timedelta(weeks=1)
@@ -121,7 +129,13 @@ async def on_message(message):
 
             try:
                 await message.author.timeout(duracao, reason=f"Spam de cargo ({duracao_texto})")
-                await message.delete()
+
+                # Deleta todas as mensagens de spam
+                for msg in msgs_para_deletar:
+                    try:
+                        await msg.delete()
+                    except:
+                        pass
 
                 canal_log = bot.get_channel(CANAL_LOG)
                 if canal_log:
