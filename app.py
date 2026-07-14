@@ -89,7 +89,7 @@ async def on_member_join(member):
 async def on_member_remove(member):
     async with aiohttp.ClientSession() as session:
         webhook = discord.Webhook.from_url(WEBHOOK_SAIDA, session=session)
-        await webhook.send(f"**O Usuario {member.display_name} saiu do servidor! Data e Hora da saida:** <t:{int(datetime.utcnow().timestamp())}:f>")
+        await webhook.send(f"**O meliante {member.mention} saiu do servidor! Data e Hora da saida:** <t:{int(datetime.utcnow().timestamp())}:f>")
 
 @bot.event
 async def on_message(message):
@@ -185,7 +185,7 @@ async def on_message(message):
 
     # --- Lógica de entrar na call ---
     palavras_entrar = ["entrar na call", "vem call", "entrar call", "entra na call", "entra call"]
-    palavras_sair = ["sai da call", "sair da call", "sai da voz", "pode sair", "vaza", "pode vazar"]
+    palavras_sair = ["sai da call", "sair da call", "sai da voz", "pode sair", "vaza", "pode vazar", "Saia"]
 
     if any(p in prompt_lower for p in palavras_entrar):
         canal_voz = message.author.voice.channel if message.author.voice else None
