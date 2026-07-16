@@ -7,8 +7,7 @@ import asyncio
 import aiohttp
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import threading
-from datetime import datetime, timedelta, timezone
-from collections import defaultdict
+from datetime import datetime
 
 # --- TOKENS ---
 DISCORD_TOKEN = os.environ.get("DISCORD_TOKEN")
@@ -27,14 +26,7 @@ SYSTEM_PROMPT = (
 # IDs
 CANAL_BOAS_VINDAS = 1476447063154757732
 CARGO_REVIVER = 1429476218771869786
-CARGO_SPAM = 1487650197319454852
-CANAL_LOG = 1427106726284492820
 WEBHOOK_SAIDA = "https://discord.com/api/webhooks/1522392947071651943/jpS662kBWCjuUNAu81Aj8Z_ymsgvk7DTR5PkMB7my3fabJ065gGYWbLKBujh_0TWBco3"
-
-# Controle de spam
-mencoes_usuarios = defaultdict(list)       # {user_id: [timestamps]}
-mensagens_usuarios = defaultdict(list)     # {user_id: [message objects]}
-punidos_usuarios = set()
 
 historico_usuarios = {}
 
@@ -48,7 +40,7 @@ def perguntar_gemini(usuario_id, prompt):
     })
 
     response = client_ai.models.generate_content(
-        model="gemini-3.1-flash-lite-preview",
+        model="gemini-3.1-flash-lite",
         contents=historico_usuarios[usuario_id],
         config=types.GenerateContentConfig(
             system_instruction=SYSTEM_PROMPT,
@@ -83,71 +75,17 @@ async def on_ready():
 async def on_member_join(member):
     canal = bot.get_channel(CANAL_BOAS_VINDAS)
     if canal:
-        await canal.send(f"Olá {member.mention} Bem vindo(a) espero que goste do servidor, se precisar de alguma coisa estou a disposição <:emoji_32:1517687772754739250>")
+        await canal.send(f"Eai {member.mention} Bem vindo(a) espero que goste do servidor, se precisar de alguma coisa estou aqui <:emoji_32:1517687772754739250>")
 
 @bot.event
 async def on_member_remove(member):
     async with aiohttp.ClientSession() as session:
         webhook = discord.Webhook.from_url(WEBHOOK_SAIDA, session=session)
-        await webhook.send(f"**O meliante {member.mention} saiu do servidor! Data e Hora da saida:** <t:{int(datetime.utcnow().timestamp())}:f>")
+        await webhook.send(f"**O meliante {member.display_name} saiu do servidor!** **__Data e Hora da saida:__** <t:{int(datetime.utcnow().timestamp())}:f>")
 
 @bot.event
 async def on_message(message):
     if message.author == bot.user:
-        return
-
-    # --- Detecção de spam do cargo ---
-    if any(role.id == CARGO_SPAM for role in message.role_mentions):
-        usuario_id = message.author.id
-        agora = datetime.now(timezone.utc)
-
-        # Remove menções antigas fora da janela de 10 minutos
-        indices_validos = [
-            i for i, t in enumerate(mencoes_usuarios[usuario_id])
-            if agora - t < timedelta(minutes=10)
-        ]
-        mencoes_usuarios[usuario_id] = [mencoes_usuarios[usuario_id][i] for i in indices_validos]
-        mensagens_usuarios[usuario_id] = [mensagens_usuarios[usuario_id][i] for i in indices_validos]
-
-        mencoes_usuarios[usuario_id].append(agora)
-        mensagens_usuarios[usuario_id].append(message)
-        print(f"🚨 Spam detectado de {message.author} - total: {len(mencoes_usuarios[usuario_id])}")
-
-        if len(mencoes_usuarios[usuario_id]) >= 5:
-            # Guarda as mensagens para deletar
-            msgs_para_deletar = mensagens_usuarios[usuario_id].copy()
-            mencoes_usuarios[usuario_id].clear()
-            mensagens_usuarios[usuario_id].clear()
-
-            if usuario_id in punidos_usuarios:
-                duracao = timedelta(weeks=1)
-                duracao_texto = "1 semana"
-            else:
-                duracao = timedelta(days=1)
-                duracao_texto = "1 dia"
-                punidos_usuarios.add(usuario_id)
-
-            try:
-                await message.author.timeout(duracao, reason=f"Spam de cargo ({duracao_texto})")
-
-                # Deleta todas as mensagens de spam
-                for msg in msgs_para_deletar:
-                    try:
-                        await msg.delete()
-                    except:
-                        pass
-
-                canal_log = bot.get_channel(CANAL_LOG)
-                if canal_log:
-                    await canal_log.send(
-                        f"Log de punição! {message.author.mention} foi mutado(a) por **{duracao_texto}**.\n"
-                        f"**Razão:** Spam do cargo <@&{CARGO_SPAM}>\n"
-                        f"**Canal:** {message.channel.mention}\n"
-                        f"**Data e hora da punição:** <t:{int(datetime.now(timezone.utc).timestamp())}:f>"
-                    )
-                print(f"✅ {message.author} mutado por {duracao_texto}")
-            except Exception as e:
-                print(f"Erro ao mutar: {e}")
         return
 
     mencionou = bot.user.mentioned_in(message)
